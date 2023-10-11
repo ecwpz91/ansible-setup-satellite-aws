@@ -1,0 +1,1 @@
+# ansible-setup-satellite-aws
