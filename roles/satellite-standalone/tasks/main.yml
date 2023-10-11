@@ -183,3 +183,7 @@
     state: enabled 
   notify: reload_firewalld
   become: true
+
+- name: Install development satellite instance
+  shell: satellite-installer --scenario satellite --foreman-initial-organization "{{ satellite_organization }}" --foreman-initial-location "{{ satellite_location }}" --foreman-initial-admin-username "{{ satellite_admin_user }}" --foreman-initial-admin-password "{{ satellite_admin_pass }}" --tuning development
+  become: true
