@@ -1,3 +1,25 @@
+# IDE
+*.iml
+.idea
+
+# Packer
+build.log
+vars.json
+
+# Compiled classes
+/target
+
+# pass
+vault_pass
+aws-credentials
+*.retry
+private*
+
+# workspace
+.workspace/
+.sandbox*/
+playbooks/group_vars/all/vault
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
