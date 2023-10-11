@@ -29,3 +29,8 @@ vault_rhc_organization_id:
 
 vault_awx_user_name:
 vault_awx_user_pass:
+
+vault_satellite_organization:
+vault_satellite_location:
+vault_satellite_admin_user:
+vault_satellite_admin_pass:
