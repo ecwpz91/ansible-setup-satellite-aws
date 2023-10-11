@@ -1,0 +1,19 @@
+---
+
+#---------------------------------------------------
+# Puppet Master Security Group
+#---------------------------------------------------
+
+- name: Create puppet master security group
+  ec2_group:
+   name: "{{ ec2_security_group_puppetmaster }}"
+   description: "Default security group that allows all instances to enable cockpit service."
+   vpc_id: "{{ vpc_id }}"
+   region: "{{ aws_region }}"
+   state: "present"
+   rules:
+    - proto: "tcp"
+      from_port: "{{ puppetmaster_port }}"
+      to_port: "{{ puppetmaster_port }}"
+      cidr_ip: "{{ public_route_cidr_block }}"
+   rules_egress: []

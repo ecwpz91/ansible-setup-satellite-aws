@@ -1,0 +1,98 @@
+---
+
+#---------------------------------------------------
+# AMI
+#---------------------------------------------------
+
+# - name: search for AMI
+#   amazon.aws.ec2_ami_info:
+#     owners: "{{ redhat_owner_id }}"
+#     filters:
+#       aws_name: "RHEL-8.7.0_HVM-*-x86_64-*Hourly*"
+#       region: "{{ aws_region }}"
+#   register: ami_find
+  
+- name: gather information about an AMI using ami-id
+  amazon.aws.ec2_ami_info:
+    image_ids: "{{ ec2_image }}"
+    region: "{{ aws_region }}"
+    owners: "{{ redhat_owner_id }}"
+  register: ami_find
+
+- name: print AMI
+  ansible.builtin.debug:
+    var: ami_find
+
+- name: Set ami device
+  set_fact:
+    ec2_device: "{{ ami_find.images[0].root_device_name }}"
+
+# - debug: msg="{{ ec2_image }}"
+# - debug: msg="{{ ec2_device }}"
+
+#---------------------------------------------------
+# EC2
+#---------------------------------------------------
+- name: Launch ec2 instance
+  amazon.aws.ec2_instance:
+   instance_type: "{{ ec2_instance_type }}"
+   image_id: "{{ ec2_image }}"
+   region: "{{ aws_region }}"
+   wait: true
+   key_name: "{{ remote_user_key }}"
+   vpc_subnet_id: "{{ public_subnet_id }}"
+   security_groups: ['{{ ec2_security_group }}', '{{ ec2_security_group_ingress }}', '{{ ec2_security_group_egress }}', '{{ ec2_security_group_ssh }}', '{{ ec2_security_group_cockpit }}']
+   volumes:
+    - device_name: "{{ ec2_device }}"
+      ebs:
+        volume_size: "{{ os_root_vol_size }}"
+        delete_on_termination: true
+    - device_name: "{{ os_back_block_device }}"
+      ebs:
+        volume_size: "{{ os_back_vol_size }}"
+        volume_type: gp2
+   tags:
+    Name: "{{ ec2_tag }}"
+    namespace: "{{ namespace }}"
+    AppID: "{{ app_id }}"
+    Role: "{{ role }}"
+    Env: "{{ deploy_env }}"
+    SemVer: "{{ release }}"
+    Type: "{{ ec2_instance_type }}"
+   exact_count: 1
+  register: ec2_host
+
+- debug: msg="{{ ec2_host }}"
+
+# Gather information about any instance with a tag key Name and value Example
+- ec2_instance_info:
+    filters:
+      "tag:Name": "{{ ec2_tag }}"
+  register: instance_info
+
+# - debug: msg="{{ instance_info.instances[0].instance_id }}"
+# - debug: msg="{{ instance_info.instances[0].private_ip_address }}"
+# - debug: msg="{{ instance_info.instances[0].private_dns_name }}"
+
+- name: Create elastic ip
+  ec2_eip:
+   device_id: "{{ instance_info.instances[0].instance_id }}"
+   region: "{{ aws_region }}"
+   release_on_disassociation: true
+  register: ec2_elastic_ip
+
+- debug: msg="{{ ec2_elastic_ip }}"
+
+- name: Set ip facts
+  set_fact:
+   private_ip: "{{ instance_info.instances[0].private_ip_address }}"
+   public_ip: "{{ ec2_elastic_ip['public_ip'] }}"
+   private_dns_name: "{{ instance_info.instances[0].private_dns_name }}"
+
+- name: Wait for SSH
+  local_action: wait_for
+                host={{ item }}
+                port=22
+                state=started
+  with_items:
+   - "{{ public_ip }}"

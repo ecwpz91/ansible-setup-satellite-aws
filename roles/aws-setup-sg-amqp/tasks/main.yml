@@ -1,0 +1,19 @@
+---
+
+#---------------------------------------------------
+# AMQP Security Group
+#---------------------------------------------------
+
+- name: Create amqp security group
+  ec2_group:
+   name: "{{ ec2_security_group_amqp }}"
+   description: "Default security group that allows all instances to enable cockpit service."
+   vpc_id: "{{ vpc_id }}"
+   region: "{{ aws_region }}"
+   state: "present"
+   rules:
+    - proto: "tcp"
+      from_port: "{{ amqp_port }}"
+      to_port: "{{ amqp_port }}"
+      cidr_ip: "{{ public_route_cidr_block }}"
+   rules_egress: []

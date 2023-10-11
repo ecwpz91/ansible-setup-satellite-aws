@@ -1,0 +1,38 @@
+---
+
+#---------------------------------------------------
+# SSH
+#---------------------------------------------------
+# - name: Generate ssh key
+#   user: "name={{ remote_user_name }} generate_ssh_key=yes"
+#   delegate_to: "{{ public_ip }}"
+#   remote_user: "{{ remote_user_name }}"
+
+# - name: Register public key
+#   shell: "cat ~/.ssh/id_rsa.pub"
+#   delegate_to: "{{ public_ip }}"
+#   remote_user: "{{ remote_user_name }}"
+#   register: "ec2_rsa_pub"
+
+#---------------------------------------------------
+# Inventory (in-memory)
+#---------------------------------------------------
+- name: Add host to group 'created_vms'
+  add_host:
+    name: "{{ item.ip }}"
+    groups: created_vms
+    instance_name: "{{ item.name }}"
+  with_items:
+    - { name: '{{ ec2_tag }}', ip: '{{ public_ip }}' }
+
+- debug: var=groups['created_vms']
+
+- name: Add host to group 'created_nodes'
+  add_host:
+    name: "{{ item.ip }}"
+    groups: created_nodes
+    instance_name: "{{ item.name }}"
+  with_items:
+    - { name: '{{ ec2_tag }}', ip: '{{ public_ip }}' }
+
+- debug: var=groups['created_nodes']

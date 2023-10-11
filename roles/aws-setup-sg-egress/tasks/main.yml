@@ -1,0 +1,22 @@
+---
+
+#---------------------------------------------------
+# Egress Security Group
+#---------------------------------------------------
+
+- name: Create egress security group
+  ec2_group:
+   name: "{{ ec2_security_group_egress }}"
+   description: "This security group allows public egress from the instances for HTTP and HTTPS, which is needed for yum updates, git access etc etc."
+   vpc_id: "{{ vpc_id }}"
+   region: "{{ aws_region }}"
+   state: "present"
+   rules_egress:
+    - proto: "tcp"
+      from_port: "{{ http_port }}"
+      to_port: "{{ http_port }}"
+      cidr_ip: "{{ public_route_cidr_block }}"
+    - proto: "tcp"
+      from_port: "{{ https_port }}"
+      to_port: "{{ https_port }}"
+      cidr_ip: "{{ public_route_cidr_block }}"

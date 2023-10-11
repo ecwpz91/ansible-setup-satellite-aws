@@ -1,0 +1,16 @@
+---
+
+#---------------------------------------------------
+# Gateway
+#---------------------------------------------------
+
+- name: Create internet gateway
+  ec2_vpc_igw:
+   vpc_id: "{{ vpc_id }}"
+   region: "{{ aws_region }}"
+   state: "present"
+  register: igw_facts
+
+- name: Set gateway fact
+  set_fact:
+   igw_id: "{{ igw_facts['gateway_id'] }}"

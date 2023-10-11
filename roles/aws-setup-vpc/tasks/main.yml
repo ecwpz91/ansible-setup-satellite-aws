@@ -1,0 +1,19 @@
+---
+
+#---------------------------------------------------
+# VPC
+#---------------------------------------------------
+
+- name: Create public vpc
+  ec2_vpc_net:
+   name: "{{ vpc_tag }}"
+   cidr_block: "{{ vpc_cidr_block }}"
+   region: "{{ aws_region }}"
+   tags:
+    Name: "{{ vpc_tag }}"
+    namespace: "{{ namespace }}"
+  register: vpc_facts
+
+- name: Set vpc fact
+  set_fact:
+   vpc_id: "{{ vpc_facts['vpc']['id'] }}"

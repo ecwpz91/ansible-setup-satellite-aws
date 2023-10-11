@@ -1,0 +1,49 @@
+---
+
+- name: Provision RHEL instance
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  roles:
+    - aws-setup-ec2-key
+    - aws-setup-vpc
+    - aws-setup-subnet
+    - aws-setup-gateway
+    - aws-setup-route
+    - aws-setup-sg-vpc
+    - aws-setup-sg-ingress
+    - aws-setup-sg-egress
+    - aws-setup-sg-ssh
+    - aws-setup-sg-cockpit
+    - aws-setup-sg-amqp
+    - aws-setup-sg-anaconda
+    - aws-setup-sg-dhcp
+    - aws-setup-sg-dns
+    - aws-setup-sg-docker
+    - aws-setup-sg-puppetmaster
+    - aws-setup-sg-tftp
+    - aws-setup-ec2-instance
+    - aws-setup-dns-private
+    - aws-setup-dns-public
+    - define-derived-vars
+
+- name: Refresh hosts
+  hosts: localhost
+
+- name: Register hosts
+  hosts: created_vms
+  remote_user: "{{ remote_user_name }}"
+  vars:
+    state: 'present'
+  roles:
+    - rhel-common
+
+- name: Refresh hosts
+  hosts: localhost
+
+- name: Install satellite standalone
+  hosts: created_nodes
+  vars:
+   state: 'present'
+  roles:
+    - satellite-standalone

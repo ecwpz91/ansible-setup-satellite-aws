@@ -1,0 +1,185 @@
+---
+
+- name: Enable satellite repositories
+  community.general.rhsm_repository:
+    name: 
+      - satellite-6.13-for-rhel-8-x86_64-rpms
+      - satellite-maintenance-6.13-for-rhel-8-x86_64-rpms
+  become: true
+
+# - name: Enable postgres module stream
+#   ansible.builtin.dnf:
+#     name: '@postgresql:12'
+#     state: present
+#   become: true
+
+# - name: Enable ruby module stream
+#   ansible.builtin.dnf:
+#     name: '@ruby:2.7'
+#     state: present
+#   become: true
+
+# - name: Enable satellite module stream
+#   ansible.builtin.dnf:
+#     name: '@satellite:el8'
+#     state: present
+#   become: true
+
+# Solution article --> https://access.redhat.com/solutions/6973811
+- name: Enable satellite module stream
+  shell: dnf module enable satellite:el8 postgresql:12 ruby:2.7 -y
+  become: true
+
+- name: Install satellite packages
+  yum:
+    name:
+      - satellite
+      - chrony
+      - sos
+  become: true
+
+- name: Upgrade all packages
+  yum: name=* state=latest
+  become: true
+
+- name: Autoremove unneeded packages installed as dependencies
+  ansible.builtin.dnf:
+    autoremove: yes
+  become: true
+
+- name: Create partition on /dev/xvdb
+  parted:
+    label: gpt
+    device: "{{ os_back_block_device }}"
+    number: 1
+    state: present
+    part_start: 1MiB
+    part_end: 100%
+  become: yes
+
+- name: Create physical volume (PV) with satellite volume group (VG)
+  lvg:
+    pvs: "{{ os_back_partition }}"
+    vg: "{{ os_back_vg }}"
+  become: yes
+
+- name: Create postgresql logical volume (LV)
+  lvol:
+    vg: "{{ os_back_vg }}"
+    lv: "{{ os_back_postgres_lv }}"
+    size: 25%VG
+    force: yes
+  become: yes
+
+- name: Create pulp logical volume (LV)
+  lvol:
+    vg: "{{ os_back_vg }}"
+    lv: "{{ os_back_pulp_lv }}"
+    size: 75%VG
+    force: yes
+  become: yes
+
+- name: Make xfs filesystem for postgresql
+  filesystem:
+    fstype: "{{ os_back_postgres_fstype }}"
+    dev: "/dev/{{ os_back_vg }}/{{ os_back_postgres_lv }}"
+  become: yes
+
+- name: Make xfs filesystem for pulp
+  filesystem:
+    fstype: "{{ os_back_pulp_fstype }}"
+    dev: "/dev/{{ os_back_vg }}/{{ os_back_pulp_lv }}"
+  become: yes
+
+- name: Inform the OS of partition table changes
+  command: "partprobe"
+  become: yes
+
+- name: Create postgresql directory if it does not exist
+  ansible.builtin.file:
+    path: "{{ os_root_postgres_directory }}"
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Create pulp directory if it does not exist
+  ansible.builtin.file:
+    path: "{{ os_root_pulp_directory }}"
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Add line mount point for postgres LV in /etc/fstab
+  lineinfile:
+    path: /etc/fstab
+    line: "{{ os_back_postgres_dev }}          {{ os_root_postgres_directory }}      {{ os_back_postgres_fstype }}     defaults        0       0"
+    state: present
+    create: yes  # If the line does not exist, create it
+  become: yes
+
+- name: Add line mount point for pulp LV in /etc/fstab
+  lineinfile:
+    path: /etc/fstab
+    line: "{{ os_back_pulp_dev }}           {{ os_root_pulp_directory }}       {{ os_back_pulp_fstype }}     defaults        0       0"
+    state: present
+    create: yes  # If the line does not exist, create it
+  become: yes
+
+- name: Unconditionally reboot the machine with all defaults
+  ansible.builtin.reboot:
+    reboot_timeout: 3600
+  become: yes
+
+- name: Permit traffic in default zone for dns (53/tcp and udp) a network port used for communication between a DNS client and server.
+  firewalld:
+    service: dns
+    permanent: true
+    immediate: yes
+    state: enabled
+  notify: reload_firewalld
+  become: true
+
+- name: Permit traffic in default zone for dhcp (67/udp) a client to capsule broadcasts, DHCP broadcasts for client provisioning from a capsule (optional).
+  firewalld:
+    service: dhcp
+    permanent: true
+    immediate: yes
+    state: enabled
+  notify: reload_firewalld
+  become: true
+
+- name: Permit traffic in default zone for TFTP (69/udp) is a simple protocol for transferring files
+  firewalld:
+    service: tftp
+    permanent: true
+    immediate: yes
+    state: enabled
+  notify: reload_firewalld
+  become: true
+
+- name: Permit traffic in default zone for puppet (8140/tcp) the master server
+  firewalld:
+    service: puppetmaster
+    permanent: true
+    immediate: yes
+    state: enabled
+  notify: reload_firewalld
+  become: true
+
+- name: Permit traffic in default zone for amqp (5647/tcp) the katello agent to communicate with satellite qpid dispatch router
+  firewalld:
+    port: 5647/tcp
+    permanent: true
+    immediate: yes
+    state: enabled 
+  notify: reload_firewalld
+  become: true
+
+- name: Permit traffic in default zone for anaconda (8000/tcp) to download kickstart templates to hosts, and for downloading iPXE firmware
+  firewalld:
+    port: 8000/tcp
+    permanent: true
+    immediate: yes
+    state: enabled 
+  notify: reload_firewalld
+  become: true

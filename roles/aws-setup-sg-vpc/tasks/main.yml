@@ -1,0 +1,23 @@
+---
+
+#---------------------------------------------------
+# VPC Security Group
+#---------------------------------------------------
+
+- name: Create vpc security group
+  ec2_group:
+   name: "{{ ec2_security_group }}"
+   description: "Default security group that allows all instances in the VPC to talk to each other over any port and protocol."
+   vpc_id: "{{ vpc_id }}"
+   region: "{{ aws_region }}"
+   state: "present"
+   rules:
+    - proto: "-1"
+      from_port: "0"
+      to_port: "0"
+      group_name: "{{ ec2_security_group }}"
+   rules_egress:
+    - proto: "-1"
+      from_port: "0"
+      to_port: "0"
+      group_name: "{{ ec2_security_group }}"

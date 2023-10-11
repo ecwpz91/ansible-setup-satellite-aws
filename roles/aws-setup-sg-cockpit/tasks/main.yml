@@ -1,0 +1,19 @@
+---
+
+#---------------------------------------------------
+# Cockpit Security Group
+#---------------------------------------------------
+
+- name: Create cockpit security group
+  ec2_group:
+   name: "{{ ec2_security_group_cockpit }}"
+   description: "Default security group that allows all instances to enable cockpit service."
+   vpc_id: "{{ vpc_id }}"
+   region: "{{ aws_region }}"
+   state: "present"
+   rules:
+    - proto: "tcp"
+      from_port: "{{ cockpit_port }}"
+      to_port: "{{ cockpit_port }}"
+      cidr_ip: "{{ public_route_cidr_block }}"
+   rules_egress: []

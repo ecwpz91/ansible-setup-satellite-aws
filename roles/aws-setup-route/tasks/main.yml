@@ -1,0 +1,23 @@
+---
+
+#---------------------------------------------------
+# Route Table
+#---------------------------------------------------
+
+- name: Create route table
+  ec2_vpc_route_table:
+   vpc_id: "{{ vpc_id }}"
+   region: "{{ aws_region }}"
+   subnets:
+    - "{{ public_subnet_id }}"
+   routes:
+    - dest: "{{ public_route_cidr_block }}"
+      gateway_id: "{{ igw_id }}"
+   tags:
+     Name: "{{ vpc_route_tag }}"
+     namespace: "{{ namespace }}"
+  register: route_facts
+
+- name: Set availability zone fact
+  set_fact:
+    availability_zone: "{{ subnet_facts['subnet']['availability_zone'] }}"

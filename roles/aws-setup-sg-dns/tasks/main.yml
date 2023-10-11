@@ -1,0 +1,23 @@
+---
+
+#---------------------------------------------------
+# DNS Security Group
+#---------------------------------------------------
+
+- name: Create dns security group
+  ec2_group:
+   name: "{{ ec2_security_group_dns }}"
+   description: "Default security group that allows all instances to enable cockpit service."
+   vpc_id: "{{ vpc_id }}"
+   region: "{{ aws_region }}"
+   state: "present"
+   rules:
+    - proto: "tcp"
+      from_port: "{{ dns_port }}"
+      to_port: "{{ dns_port }}"
+      cidr_ip: "{{ public_route_cidr_block }}"
+    - proto: "udp"
+      from_port: "{{ dns_port }}"
+      to_port: "{{ dns_port }}"
+      cidr_ip: "{{ public_route_cidr_block }}"
+   rules_egress: []

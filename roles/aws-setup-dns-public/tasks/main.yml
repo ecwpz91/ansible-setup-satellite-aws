@@ -1,0 +1,16 @@
+---
+
+#---------------------------------------------------
+# Route53
+#---------------------------------------------------
+
+- name: Create public record
+  route53:
+    zone: "{{ domain }}"
+    record: "{{ domain }}"
+    type: A
+    ttl: 300
+    value: "{{ public_ip }}"
+    wait: yes
+    command: "create"
+    overwrite: yes

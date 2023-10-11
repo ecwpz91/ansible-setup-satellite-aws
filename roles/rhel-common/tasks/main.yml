@@ -1,0 +1,201 @@
+---
+
+# - name: Disable rhui plugins
+#   lineinfile: dest={{ item }} regexp='^enabled' line='enabled=0' state=present
+#   become: true
+#   with_items:
+#    - /etc/yum/pluginconf.d/amazon-id.conf
+#    - /etc/yum/pluginconf.d/rhui-lb.conf
+
+# - name: Disable rhui repos
+#   replace:
+#     dest: "{{ item }}"
+#     regexp: 'enabled=1'
+#     replace: 'enabled=0'
+#   become: true
+#   with_items:
+#    - /etc/yum.repos.d/redhat-rhui.repo
+#    - /etc/yum.repos.d/redhat-rhui-client-config.repo
+
+# - name: Enable rhsm plugins
+#   lineinfile: dest={{ item }} regexp='^enabled' line='enabled=1' state=present
+#   become: true
+#   with_items:
+#     - /etc/yum/pluginconf.d/product-id.conf
+#     - /etc/yum/pluginconf.d/subscription-manager.conf
+
+# - name: Add dns entries
+#   blockinfile:
+#    path: /etc/hosts
+#    block: |
+#     209.132.183.44   xmlrpc.rhn.redhat.com
+#     23.204.148.218   content-xmlrpc.rhn.redhat.com
+#     209.132.183.49   subscription.rhn.redhat.com
+#     209.132.183.108  subscription.rhsm.redhat.com
+#     209.132.182.63   registry.access.redhat.com
+#     209.132.182.33   repository.jboss.org
+#   marker: "<!-- {mark} ANSIBLE MANAGED BLOCK -->"
+#   insertafter: EOF
+#   become: true
+
+# #---------------------------------------------------
+# # Red Hat Product Signing (GPG) Keys
+# # See https://access.redhat.com/security/team/key
+# #---------------------------------------------------
+
+# - name: Import package-signing keys
+#   shell: /usr/bin/rpmkeys --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-beta /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+#   become: true
+
+# #---------------------------------------------------
+# # Red Hat Subscription Management (RHSM)
+# # See https://access.redhat.com/
+# #---------------------------------------------------
+
+# - name: Force unregister before
+#   redhat_subscription:
+#    state: absent
+#   ignore_errors: true
+#   become: true
+
+# - name: Customer portal registration
+#   redhat_subscription:
+#    state: present
+#    username: "{{ rhsm_user_name }}"
+#    password: "{{ rhsm_user_pass }}"
+#    autosubscribe: false
+#   register: result
+#   until: result | succeeded
+#   retries: 10
+#   delay: 5
+#   become: true
+#   when: (rhsm_user_name is defined) and
+#         (rhsm_user_pass is defined)
+
+# - name: Activation key registration
+#   redhat_subscription:
+#     state: present
+#     activationkey: "{{ rhsm_key_id }}"
+#     org_id: "{{ rhsm_org_id }}"
+#     autosubscribe: false
+#   register: result
+#   until: result | succeeded
+#   retries: 10
+#   delay: 5
+#   become: true
+#   when: (rhsm_key_id is defined) and
+#         (rhsm_org_id is defined)
+
+# - name: Subscribe pool id
+#   shell: /usr/bin/subscription-manager attach --pool={{ rhsm_pool_id }}
+#   register: task_result
+#   until: task_result.rc == 0
+#   retries: 10
+#   delay: 5
+#   ignore_errors: no
+#   become: true
+#   when: rhsm_pool_id is defined
+
+# - name: Disable all rhsm repos
+#   shell: /usr/bin/subscription-manager repos --disable="*"
+#   retries: 5
+#   delay: 10
+#   become: true
+
+# - name: Disable all yum repos
+#   shell: /usr/bin/yum-config-manager --disable \*
+#   become: true
+
+# - name: Enable baseline repos
+#   shell: /usr/bin/subscription-manager repos --enable="rhel-7-server-rpms" --enable="rhel-7-server-extras-rpms"
+#   retries: 5
+#   delay: 10
+#   become: true
+
+- name: Upgrade all packages
+  yum: name=* state=latest
+  become: true
+
+- name: Install general packages
+  ansible.builtin.dnf:
+    name:
+      - rhel-system-roles
+      - ansible-core
+      - bash-completion
+      - 'lvm2*'
+      - firewalld
+      - cockpit
+    state: latest
+  become: true
+
+- name: Register system using Red Hat Connect
+  shell: rhc connect --organization "{{ rhc_org_id }}" --activation-key "{{ rhc_key_id }}"
+  become: true
+  when: (rhc_key_id is defined) and
+        (rhc_org_id is defined)
+
+- name: Allow repository management to be done via subscription manager
+  shell: subscription-manager config --rhsm.manage_repos=1
+  become: true
+  when: (rhc_key_id is defined) and
+        (rhc_org_id is defined)
+
+- name: Enable service firewalld, and not touch the state
+  ansible.builtin.service:
+    name: firewalld
+    enabled: yes
+  become: yes
+
+- name: Start service firewalld, if not started
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+  become: yes
+
+- name: Enable service cockpit, and not touch the state
+  ansible.builtin.service:
+    name: cockpit.socket
+    enabled: yes
+  become: yes
+
+- name: Start service cockpit, if not started
+  ansible.builtin.service:
+    name: cockpit.socket
+    state: started
+  become: yes
+
+- name: Permit traffic in default zone for cockpit (9090/tcp) service
+  firewalld:
+    service: cockpit
+    permanent: true
+    immediate: yes
+    state: enabled
+  notify: reload_firewalld
+  become: true
+
+- name: Permit traffic in default zone for http (80/tcp) service
+  firewalld:
+    service: http
+    permanent: true
+    immediate: yes
+    state: enabled
+  notify: reload_firewalld
+  become: true
+
+- name: Permit traffic in default zone for https (443/tcp) service
+  firewalld:
+    service: https
+    permanent: true
+    immediate: yes
+    state: enabled
+  notify: reload_firewalld
+  become: true
+
+- name: Permit traffic in default zone for docker registry (5000/tcp) service
+  firewalld:
+    service: docker-registry
+    permanent: true
+    immediate: yes
+    state: enabled
+  notify: reload_firewalld
+  become: true
