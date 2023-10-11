@@ -103,9 +103,13 @@ os_root_vol_size: 35
 
 # Satellite
 os_back_block_device: /dev/xvdb
-os_back_vol_size: 15
+os_back_vol_size: 75
 os_back_partition: /dev/xvdb1
 os_back_vg: satellite_vg
+satellite_organization: "{{ vault_satellite_organization }}"
+satellite_location: "{{ vault_satellite_location }}"
+satellite_admin_user: "{{ vault_satellite_admin_user }}"
+satellite_admin_pass: "{{ vault_satellite_admin_pass }}"
 
 # Postgresql
 os_back_postgres_lv: pgsql_lv
