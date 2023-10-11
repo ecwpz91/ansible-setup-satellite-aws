@@ -152,26 +152,26 @@
     state: started
   become: yes
 
-- name: Enable service cockpit, and not touch the state
-  ansible.builtin.service:
-    name: cockpit.socket
-    enabled: yes
-  become: yes
+# - name: Enable service cockpit, and not touch the state
+#   ansible.builtin.service:
+#     name: cockpit.socket
+#     enabled: yes
+#   become: yes
 
-- name: Start service cockpit, if not started
-  ansible.builtin.service:
-    name: cockpit.socket
-    state: started
-  become: yes
+# - name: Start service cockpit, if not started
+#   ansible.builtin.service:
+#     name: cockpit.socket
+#     state: started
+#   become: yes
 
-- name: Permit traffic in default zone for cockpit (9090/tcp) service
-  firewalld:
-    service: cockpit
-    permanent: true
-    immediate: yes
-    state: enabled
-  notify: reload_firewalld
-  become: true
+# - name: Permit traffic in default zone for cockpit (9090/tcp) service
+#   firewalld:
+#     service: cockpit
+#     permanent: true
+#     immediate: yes
+#     state: enabled
+#   notify: reload_firewalld
+#   become: true
 
 - name: Permit traffic in default zone for http (80/tcp) service
   firewalld:
