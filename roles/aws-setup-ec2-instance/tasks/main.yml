@@ -41,7 +41,7 @@
    wait: true
    key_name: "{{ remote_user_key }}"
    vpc_subnet_id: "{{ public_subnet_id }}"
-   security_groups: ['{{ ec2_security_group }}', '{{ ec2_security_group_ingress }}', '{{ ec2_security_group_egress }}', '{{ ec2_security_group_ssh }}', '{{ ec2_security_group_cockpit }}']
+   security_groups: ['{{ ec2_security_group }}', '{{ ec2_security_group_ingress }}', '{{ ec2_security_group_egress }}', '{{ ec2_security_group_ssh }}', '{{ ec2_security_group_cockpit }}', '{{ ec2_security_group_amqp }}', '{{ ec2_security_group_anaconda }}', '{{ ec2_security_group_dhcp }}', '{{ ec2_security_group_dns }}', '{{ ec2_security_group_dockerregistry }}', '{{ ec2_security_group_puppetmaster }}', '{{ ec2_security_group_tftp }}']
    volumes:
     - device_name: "{{ ec2_device }}"
       ebs:
